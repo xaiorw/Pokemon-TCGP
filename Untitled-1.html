@@ -1,0 +1,1286 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TCG Multiverse</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bangers&family=Nunito:wght@700;800;900&display=swap');
+  :root { --gold:#FFD700; --dark:#1a1a2e; --panel:#16213e; --accent:#e94560; --text:#f0f0f0; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:var(--dark); background-image:radial-gradient(ellipse at 20% 50%,#16213e 0%,#0f3460 100%); font-family:'Nunito',sans-serif; color:var(--text); min-height:100vh; overflow-x:hidden; }
+
+  header { text-align:center; padding:24px 16px 12px; background:linear-gradient(180deg,#0a0a1a 0%,transparent 100%); border-bottom:2px solid rgba(255,215,0,0.2); }
+  header h1 { font-family:'Bangers',cursive; font-size:clamp(2.2rem,6vw,4rem); letter-spacing:3px; color:var(--gold); text-shadow:3px 3px 0 #000,0 0 30px rgba(255,215,0,0.5); }
+  header p { color:#aaa; font-size:0.85rem; margin-top:4px; }
+
+  .tabs { display:flex; justify-content:center; gap:8px; padding:16px; position:sticky; top:0; z-index:100; background:rgba(26,26,46,0.95); backdrop-filter:blur(10px); border-bottom:1px solid rgba(255,215,0,0.15); flex-wrap:wrap; }
+  .tab-btn { font-family:'Bangers',cursive; font-size:1.2rem; letter-spacing:1px; padding:10px 28px; border:2px solid var(--gold); background:transparent; color:var(--gold); cursor:pointer; border-radius:8px; transition:all 0.2s; }
+  .tab-btn.active,.tab-btn:hover { background:var(--gold); color:#000; transform:translateY(-2px); box-shadow:0 4px 20px rgba(255,215,0,0.4); }
+
+  .tab-content { display:none; padding:24px 16px; max-width:1200px; margin:0 auto; }
+  .tab-content.active { display:block; }
+
+  /* BOOSTER DROPDOWN */
+  .booster-dropdown-wrap {
+    position: relative;
+    width: 100%;
+    max-width: 340px;
+    z-index: 200;
+  }
+  .booster-dropdown-box {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--panel);
+    border: 2px solid rgba(255,215,0,0.4);
+    border-radius: 12px;
+    padding: 10px 14px;
+    cursor: pointer;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    user-select: none;
+  }
+  .booster-dropdown-box:hover { border-color: var(--gold); box-shadow: 0 0 16px rgba(255,215,0,0.2); }
+  .booster-dropdown-box.open { border-color: var(--gold); border-radius: 12px 12px 0 0; }
+  .bdd-img { width: 36px; height: 52px; object-fit: contain; border-radius: 4px; }
+  .bdd-label { font-family: 'Bangers', cursive; font-size: 1.1rem; letter-spacing: 1px; color: var(--gold); flex: 1; }
+  .bdd-arrow { color: var(--gold); font-size: 0.85rem; transition: transform 0.2s; }
+  .bdd-arrow.open { transform: rotate(180deg); }
+
+  .booster-dropdown-list {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0; right: 0;
+    background: var(--panel);
+    border: 2px solid var(--gold);
+    border-top: none;
+    border-radius: 0 0 12px 12px;
+    overflow-y: scroll;
+    max-height: 204px; /* 3 items visibles */
+    box-shadow: 0 12px 32px rgba(0,0,0,0.6);
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,215,0,0.4) transparent;
+  }
+  .booster-dropdown-list::-webkit-scrollbar { width: 6px; }
+  .booster-dropdown-list::-webkit-scrollbar-track { background: transparent; }
+  .booster-dropdown-list::-webkit-scrollbar-thumb { background: rgba(255,215,0,0.4); border-radius: 3px; }
+  .booster-dropdown-list.open { display: block; }
+  .bdl-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    cursor: pointer;
+    transition: background 0.15s;
+    border-top: 1px solid rgba(255,215,0,0.1);
+  }
+  .bdl-item:hover { background: rgba(255,215,0,0.08); }
+  .bdl-item.active { background: rgba(255,215,0,0.12); }
+  .bdl-item img { width: 32px; height: 46px; object-fit: contain; border-radius: 4px; }
+  .bdl-item span { font-family: 'Bangers', cursive; font-size: 1rem; letter-spacing: 1px; color: #ddd; }
+  .bdl-item.active span { color: var(--gold); }
+
+  /* PACK */
+  .pack-area { display:flex; flex-direction:column; align-items:center; gap:24px; }
+  .timer-box { background:var(--panel); border:2px solid var(--gold); border-radius:16px; padding:20px 40px; text-align:center; box-shadow:0 0 30px rgba(255,215,0,0.15); }
+  .timer-label { font-size:0.85rem; color:#aaa; text-transform:uppercase; letter-spacing:2px; }
+  .timer-display { font-family:'Bangers',cursive; font-size:3rem; color:var(--gold); letter-spacing:4px; text-shadow:0 0 20px rgba(255,215,0,0.6); }
+  .timer-display.ready { color:#00ff88; animation:pulse 1s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.6} }
+  .pack-visual { position:relative; width:180px; height:260px; cursor:pointer; transition:transform 0.3s; }
+  .pack-visual:hover { transform:scale(1.05) rotate(-2deg); }
+  .pack-visual.disabled { opacity:0.4; cursor:not-allowed; }
+  .pack-visual.disabled:hover { transform:none; }
+  .pack-img { width:100%; height:100%; background:linear-gradient(135deg,#1a1a2e,#16213e,#0f3460); border-radius:16px; border:3px solid var(--gold); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; box-shadow:0 8px 40px rgba(255,215,0,0.3),inset 0 0 40px rgba(255,215,0,0.05); position:relative; overflow:hidden; }
+  .pack-img::before { content:''; position:absolute; top:-50%; left:-50%; width:200%; height:200%; background:conic-gradient(transparent 0deg,rgba(255,215,0,0.05) 60deg,transparent 120deg); animation:shimmer 4s linear infinite; }
+  @keyframes shimmer { to{transform:rotate(360deg)} }
+  .pack-icon { font-size:4rem; }
+  .pack-name { font-family:'Bangers',cursive; font-size:1.4rem; color:var(--gold); letter-spacing:2px; text-align:center; padding:0 8px; }
+  .pack-count { font-size:0.8rem; color:#aaa; }
+  .open-btn { font-family:'Bangers',cursive; font-size:1.6rem; letter-spacing:2px; padding:14px 48px; background:linear-gradient(135deg,#FFD700,#FFA500); color:#000; border:none; border-radius:50px; cursor:pointer; box-shadow:0 4px 20px rgba(255,165,0,0.5); transition:all 0.2s; }
+  .open-btn:hover { transform:translateY(-3px); box-shadow:0 8px 30px rgba(255,165,0,0.7); }
+  .open-btn:disabled { opacity:0.4; cursor:not-allowed; transform:none; box-shadow:none; }
+
+  /* REVEAL */
+  .reveal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.92); z-index:1000; display:none; flex-direction:column; align-items:center; justify-content:center; padding:20px; }
+  .reveal-overlay.active { display:flex; }
+  .reveal-title { font-family:'Bangers',cursive; font-size:2.5rem; color:var(--gold); margin-bottom:24px; letter-spacing:3px; text-shadow:0 0 40px rgba(255,215,0,0.8); animation:bounceIn 0.5s ease-out; }
+  @keyframes bounceIn { 0%{transform:scale(0);opacity:0}60%{transform:scale(1.1)}100%{transform:scale(1);opacity:1} }
+  .reveal-cards { display:flex; gap:12px; flex-wrap:wrap; justify-content:center; max-width:900px; }
+  .reveal-card-wrapper { perspective:600px; }
+  .reveal-card { width:130px; height:190px; position:relative; transform-style:preserve-3d; transition:transform 0.6s cubic-bezier(0.4,0,0.2,1); cursor:pointer; }
+  .reveal-card.flipped { transform:rotateY(180deg); }
+  .card-face { position:absolute; inset:0; backface-visibility:hidden; border-radius:10px; overflow:hidden; }
+  .card-back { background:linear-gradient(135deg,#1a1a2e,#0f3460); border:2px solid var(--gold); display:flex; align-items:center; justify-content:center; font-family:'Bangers',cursive; font-size:2rem; color:var(--gold); }
+  .card-front { transform:rotateY(180deg); }
+  .card-front img { width:100%; height:100%; object-fit:cover; border:2px solid var(--gold); border-radius:10px; }
+  .card-front .card-name-overlay { position:absolute; bottom:0; left:0; right:0; background:linear-gradient(transparent,rgba(0,0,0,0.85)); padding:20px 6px 6px; font-family:'Bangers',cursive; font-size:0.8rem; color:var(--gold); text-align:center; letter-spacing:0.5px; }
+  .rarity-badge { position:absolute; top:4px; right:4px; font-size:0.6rem; font-weight:900; padding:2px 6px; border-radius:4px; text-transform:uppercase; }
+  .rarity-common { background:#555; color:#fff; }
+  .rarity-rare { background:linear-gradient(135deg,#c0a000,#ffe566); color:#000; }
+  .rarity-epic { background:linear-gradient(135deg,#7c3aed,#c084fc); color:#fff; }
+  .rarity-legendary { background:linear-gradient(135deg,#FFD700,#FFA500); color:#000; }
+  .reveal-card.legendary-glow .card-front { box-shadow:0 0 20px 6px rgba(255,215,0,0.9),0 0 40px 10px rgba(255,165,0,0.5); border-radius:10px; animation:legendaryPulse 1.5s ease-in-out infinite; }
+  @keyframes legendaryPulse { 0%,100%{box-shadow:0 0 20px 6px rgba(255,215,0,0.9),0 0 40px 10px rgba(255,165,0,0.5)}50%{box-shadow:0 0 30px 12px rgba(255,215,0,1),0 0 60px 20px rgba(255,165,0,0.8)} }
+  .new-badge { position:absolute; top:4px; left:4px; background:var(--accent); color:#fff; font-size:0.55rem; font-weight:900; padding:2px 5px; border-radius:4px; text-transform:uppercase; }
+  .reveal-actions { margin-top:24px; display:flex; gap:12px; }
+  .flip-all-btn { font-family:'Bangers',cursive; font-size:1.2rem; padding:10px 30px; background:transparent; border:2px solid var(--gold); color:var(--gold); border-radius:50px; cursor:pointer; transition:all 0.2s; }
+  .flip-all-btn:hover { background:rgba(255,215,0,0.1); }
+  .close-reveal-btn { font-family:'Bangers',cursive; font-size:1.2rem; padding:10px 30px; background:var(--gold); border:none; color:#000; border-radius:50px; cursor:pointer; transition:all 0.2s; }
+  .close-reveal-btn:hover { transform:scale(1.05); }
+
+  /* ALBUM — extension tabs */
+  /* album dropdown handled by booster-dropdown-wrap styles */
+
+  .ext-empty { text-align:center; padding:70px 20px; }
+  .ext-empty-icon { font-size:4rem; margin-bottom:16px; }
+  .ext-empty-title { font-family:'Bangers',cursive; font-size:1.8rem; color:#444; letter-spacing:2px; }
+  .ext-empty-sub { font-size:0.85rem; color:#333; margin-top:10px; }
+
+  .album-stats { display:flex; gap:16px; justify-content:center; flex-wrap:wrap; margin-bottom:24px; }
+  .stat-chip { background:var(--panel); border:1px solid rgba(255,215,0,0.3); border-radius:50px; padding:8px 20px; font-size:0.9rem; font-weight:800; }
+  .stat-chip span { color:var(--gold); }
+  .album-section-title { font-family:'Bangers',cursive; font-size:1.6rem; color:var(--gold); letter-spacing:2px; margin:20px 0 12px; padding-bottom:8px; border-bottom:1px solid rgba(255,215,0,0.2); }
+  .album-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:16px; }
+  .album-slot { position:relative; border-radius:12px; overflow:hidden; aspect-ratio:0.7; cursor:pointer; transition:transform 0.2s; }
+  .album-slot:hover { transform:translateY(-4px); }
+  .album-slot.empty { background:rgba(255,255,255,0.04); border:2px dashed rgba(255,255,255,0.15); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; cursor:default; }
+  .album-slot.empty:hover { transform:none; }
+  .slot-question { font-size:2rem; color:rgba(255,255,255,0.15); }
+  .slot-hint { font-size:0.6rem; color:rgba(255,255,255,0.2); font-weight:700; text-align:center; padding:0 8px; }
+  .album-slot.owned img { width:100%; height:100%; object-fit:cover; }
+  .album-slot.owned .card-info { position:absolute; bottom:0; left:0; right:0; background:linear-gradient(transparent,rgba(0,0,0,0.85)); padding:20px 6px 6px; font-family:'Bangers',cursive; font-size:0.72rem; color:var(--gold); text-align:center; }
+  .album-slot.owned .count-badge { position:absolute; top:4px; right:4px; background:var(--accent); color:#fff; font-size:0.65rem; font-weight:900; width:20px; height:20px; border-radius:50%; display:flex; align-items:center; justify-content:center; }
+
+  /* SELL BUTTON on duplicate cards */
+  .sell-btn {
+    position: absolute;
+    bottom: 28px;
+    left: 0; right: 0;
+    margin: 0 6px;
+    background: rgba(255,215,0,0.92);
+    color: #000;
+    border: none;
+    border-radius: 6px;
+    font-family: 'Bangers', cursive;
+    font-size: 0.75rem;
+    letter-spacing: 0.5px;
+    padding: 3px 0;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.15s;
+    z-index: 5;
+  }
+  .album-slot.owned:hover .sell-btn { opacity: 1; }
+  .sell-btn:hover { background: #FFD700 !important; transform: scale(1.04); }
+
+  /* Sell-all button per section */
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 20px 0 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(255,215,0,0.2);
+  }
+  .section-header .album-section-title { margin: 0; padding: 0; border: none; }
+  .sell-all-btn {
+    font-family: 'Bangers', cursive;
+    font-size: 0.85rem;
+    letter-spacing: 0.5px;
+    padding: 5px 14px;
+    background: rgba(255,215,0,0.12);
+    border: 1px solid rgba(255,215,0,0.4);
+    color: var(--gold);
+    border-radius: 50px;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .sell-all-btn:hover { background: rgba(255,215,0,0.25); box-shadow: 0 0 10px rgba(255,215,0,0.2); }
+  .sell-all-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+  /* Sell toast notification */
+  .sell-toast {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: linear-gradient(135deg, #1a1a2e, #0f3460);
+    border: 2px solid var(--gold);
+    border-radius: 50px;
+    padding: 10px 28px;
+    font-family: 'Bangers', cursive;
+    font-size: 1.1rem;
+    color: var(--gold);
+    letter-spacing: 1px;
+    z-index: 4000;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1), opacity 0.3s;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .sell-toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+  .progress-bar-wrap { width:100%; max-width:400px; background:rgba(255,255,255,0.1); border-radius:50px; height:8px; overflow:hidden; }
+  .progress-bar-fill { height:100%; background:linear-gradient(90deg,#FFD700,#FFA500); border-radius:50px; transition:width 0.5s ease; }
+
+  /* CARD MODAL */
+  .card-modal { position:fixed; inset:0; background:rgba(0,0,0,0.9); z-index:2000; display:none; align-items:center; justify-content:center; padding:20px; }
+  .card-modal.active { display:flex; }
+  .card-modal-inner { position:relative; max-width:340px; width:100%; animation:bounceIn 0.3s ease-out; }
+  .card-modal-inner img { width:100%; border-radius:16px; box-shadow:0 20px 60px rgba(0,0,0,0.8); }
+  .modal-close { position:absolute; top:-12px; right:-12px; width:32px; height:32px; background:var(--accent); border:none; border-radius:50%; color:#fff; font-size:1rem; cursor:pointer; font-weight:900; line-height:1; }
+
+  /* SAVE */
+  .save-area { display:flex; flex-direction:column; gap:20px; max-width:520px; margin:0 auto; }
+  .save-card { background:var(--panel); border:1px solid rgba(255,215,0,0.2); border-radius:16px; padding:24px; display:flex; flex-direction:column; align-items:center; gap:10px; text-align:center; }
+  .danger-card { border-color:rgba(248,113,113,0.3); }
+  .save-card-icon { font-size:2.2rem; }
+  .save-card-title { font-family:'Bangers',cursive; font-size:1.4rem; letter-spacing:1px; color:var(--gold); }
+  .save-card-desc { font-size:0.82rem; color:#aaa; max-width:340px; }
+  .save-btn { font-family:'Bangers',cursive; font-size:1.1rem; letter-spacing:1px; padding:10px 32px; border:none; border-radius:50px; cursor:pointer; transition:all 0.2s; }
+  .export-btn { background:linear-gradient(135deg,#FFD700,#FFA500); color:#000; }
+  .import-btn { background:linear-gradient(135deg,#22c55e,#16a34a); color:#fff; }
+  .reset-btn  { background:linear-gradient(135deg,#ef4444,#b91c1c); color:#fff; }
+  .save-btn:hover { transform:translateY(-2px); box-shadow:0 4px 16px rgba(0,0,0,0.4); }
+  .save-textarea { width:100%; min-height:90px; background:rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.1); border-radius:10px; color:#e0e0e0; font-family:monospace; font-size:0.75rem; padding:10px; resize:vertical; outline:none; }
+  .copy-btn { font-family:'Nunito',sans-serif; font-weight:800; font-size:0.85rem; padding:8px 20px; background:rgba(255,215,0,0.15); border:1px solid rgba(255,215,0,0.4); color:var(--gold); border-radius:8px; cursor:pointer; transition:all 0.2s; }
+  .copy-btn:hover { background:rgba(255,215,0,0.3); }
+  .save-msg { font-size:0.82rem; font-weight:800; padding:6px 12px; border-radius:8px; min-height:28px; }
+  .save-msg.success { background:rgba(34,197,94,0.2); color:#4ade80; }
+  .save-msg.error   { background:rgba(239,68,68,0.2); color:#f87171; }
+
+  /* MINING */
+  .mine-area { display:flex; flex-direction:column; align-items:center; gap:28px; padding-bottom:40px; }
+  .mine-stats-row { display:flex; gap:16px; flex-wrap:wrap; justify-content:center; }
+  .mine-stat { background:var(--panel); border:1px solid rgba(255,215,0,0.25); border-radius:50px; padding:8px 22px; font-weight:800; font-size:0.95rem; }
+  .mine-stat span { color:var(--gold); }
+  .mine-btn { width:170px; height:170px; border-radius:50%; border:none; cursor:pointer; background:radial-gradient(circle at 35% 35%,#ffe566,#b8860b); box-shadow:0 0 40px rgba(255,215,0,0.5),0 8px 0 #7a5500,inset 0 -4px 8px rgba(0,0,0,0.3); font-family:'Bangers',cursive; font-size:1.1rem; letter-spacing:1px; color:#3a1a00; transition:transform 0.08s,box-shadow 0.08s; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; user-select:none; }
+  .mine-btn:active { transform:scale(0.92) translateY(4px); box-shadow:0 0 20px rgba(255,215,0,0.3),0 2px 0 #7a5500,inset 0 -2px 4px rgba(0,0,0,0.3); }
+  .mine-btn-icon { font-size:2.8rem; pointer-events:none; }
+  .mine-btn-label { pointer-events:none; }
+  .mine-progress-wrap { width:100%; max-width:340px; background:rgba(255,255,255,0.08); border-radius:50px; height:14px; overflow:hidden; }
+  .mine-progress-fill { height:100%; background:linear-gradient(90deg,#FFD700,#FFA500); border-radius:50px; transition:width 0.1s ease; }
+  .mine-progress-label { font-size:0.78rem; color:#aaa; text-align:center; margin-top:4px; }
+  .float-coin { position:fixed; font-family:'Bangers',cursive; font-size:1.4rem; color:var(--gold); text-shadow:0 0 10px rgba(255,215,0,0.8); pointer-events:none; animation:floatUp 0.9s ease-out forwards; z-index:9999; }
+  @keyframes floatUp { 0%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-80px) scale(1.3)} }
+  .coin-reward-popup { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%) scale(0); background:linear-gradient(135deg,#1a1a2e,#0f3460); border:3px solid var(--gold); border-radius:20px; padding:28px 40px; text-align:center; z-index:3000; box-shadow:0 0 60px rgba(255,215,0,0.4); transition:transform 0.3s cubic-bezier(0.34,1.56,0.64,1); }
+  .coin-reward-popup.show { transform:translate(-50%,-50%) scale(1); }
+  .coin-reward-popup .reward-icon { font-size:3.5rem; }
+  .coin-reward-popup .reward-title { font-family:'Bangers',cursive; font-size:2rem; color:var(--gold); letter-spacing:2px; margin:8px 0 4px; }
+  .coin-reward-popup .reward-sub { font-size:0.85rem; color:#aaa; }
+  .coin-reward-popup .reward-close { margin-top:16px; font-family:'Bangers',cursive; font-size:1.1rem; padding:8px 28px; background:var(--gold); border:none; border-radius:50px; color:#000; cursor:pointer; }
+  .shop-title { font-family:'Bangers',cursive; font-size:1.8rem; color:var(--gold); letter-spacing:2px; text-align:center; }
+  .shop-grid { display:flex; gap:16px; flex-wrap:wrap; justify-content:center; width:100%; max-width:900px; }
+  .shop-pack { background:var(--panel); border-radius:18px; padding:20px 16px; width:220px; display:flex; flex-direction:column; align-items:center; gap:10px; transition:transform 0.2s,box-shadow 0.2s; }
+  .shop-pack:hover { transform:translateY(-4px); }
+  .shop-pack.plus { border:2px solid #4169e1; box-shadow:0 0 20px rgba(65,105,225,0.2); }
+  .shop-pack.xl   { border:2px solid #8b5cf6; box-shadow:0 0 20px rgba(139,92,246,0.2); }
+  .shop-pack.xxl  { border:2px solid #FFD700; box-shadow:0 0 20px rgba(255,215,0,0.2); }
+  .shop-pack-icon { font-size:2.8rem; }
+  .shop-pack-name { font-family:'Bangers',cursive; font-size:1.4rem; letter-spacing:1px; }
+  .shop-pack.plus .shop-pack-name { color:#7eaaff; }
+  .shop-pack.xl   .shop-pack-name { color:#c084fc; }
+  .shop-pack.xxl  .shop-pack-name { color:var(--gold); }
+  .shop-pack-rates { font-size:0.72rem; color:#aaa; text-align:center; line-height:1.7; background:rgba(0,0,0,0.3); border-radius:8px; padding:8px 12px; width:100%; }
+  .shop-pack-rates b { color:#f0f0f0; }
+  .shop-pack-price { font-family:'Bangers',cursive; font-size:1.3rem; color:var(--gold); }
+  .shop-pack-buy { font-family:'Bangers',cursive; font-size:1.1rem; padding:8px 28px; border:none; border-radius:50px; cursor:pointer; transition:all 0.2s; width:100%; }
+  .shop-pack.plus .shop-pack-buy { background:linear-gradient(135deg,#4169e1,#7eaaff); color:#fff; }
+  .shop-pack.xl   .shop-pack-buy { background:linear-gradient(135deg,#7c3aed,#c084fc); color:#fff; }
+  .shop-pack.xxl  .shop-pack-buy { background:linear-gradient(135deg,#FFD700,#FFA500); color:#000; }
+  .shop-pack-buy:disabled { opacity:0.4; cursor:not-allowed; }
+  .shop-pack-buy:not(:disabled):hover { transform:scale(1.05); }
+
+  @media (max-width:600px) {
+    .reveal-card { width:100px; height:145px; }
+    .album-grid { grid-template-columns:repeat(auto-fill,minmax(110px,1fr)); }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🃏 Pokémon TCG Pocket</h1>
+  <p>Collecte toutes les cartes Pokémon Pocket !</p>
+</header>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="showTab('pack')">🎁 Pack</button>
+  <button class="tab-btn" onclick="showTab('album')">📖 Album</button>
+  <button class="tab-btn" onclick="showTab('mine')">⛏️ Minage</button>
+  <button class="tab-btn" onclick="showTab('save')">💾 Sauvegarde</button>
+</div>
+
+<!-- PACK TAB -->
+<div id="tab-pack" class="tab-content active">
+  <div class="pack-area">
+
+    <!-- Menu déroulant sélecteur de booster -->
+    <div class="booster-dropdown-wrap">
+      <div style="font-family:'Bangers',cursive;font-size:1rem;color:#aaa;letter-spacing:2px;margin-bottom:10px;text-align:center;">CHOISIR UN BOOSTER</div>
+      <div class="booster-dropdown-box" id="boosterDropdownBox" onclick="toggleBoosterDropdown()">
+        <img class="bdd-img" id="bddSelectedImg" src="promoA.png" alt="Promo-A">
+        <span class="bdd-label" id="bddSelectedLabel">🎴 Promo-A</span>
+        <span class="bdd-arrow" id="bddArrow">▼</span>
+      </div>
+      <div class="booster-dropdown-list" id="boosterDropdownList">
+        <div class="bdl-item active" data-ext="ext1"  onclick="selectBooster('ext1',this)"><img src="promoA.png" alt=""><span>🎴 Promo-A</span></div>
+        <div class="bdl-item"        data-ext="ext2"  onclick="selectBooster('ext2',this)"><img src="A1.png"    alt=""><span>⚡ A1 — Puissance génétique</span></div>
+        <div class="bdl-item"        data-ext="ext3"  onclick="selectBooster('ext3',this)"><img src="A1a.png"   alt=""><span>🌺 A1a — L'île fabuleuse</span></div>
+        <div class="bdl-item"        data-ext="ext4"  onclick="selectBooster('ext4',this)"><img src="A2.png"    alt=""><span>🌀 A2 — Choc spatio-temporel</span></div>
+        <div class="bdl-item"        data-ext="ext5"  onclick="selectBooster('ext5',this)"><img src="A2a.png"   alt=""><span>✨ A2a — Lumière triomphale</span></div>
+        <div class="bdl-item"        data-ext="ext6"  onclick="selectBooster('ext6',this)"><img src="A2b.png"   alt=""><span>🎊 A2b — Réjouissances rayonnantes</span></div>
+        <div class="bdl-item"        data-ext="ext7"  onclick="selectBooster('ext7',this)"><img src="A3.png"    alt=""><span>🌟 A3 — Gardiens astraux</span></div>
+        <div class="bdl-item"        data-ext="ext8"  onclick="selectBooster('ext8',this)"><img src="A3a.png"   alt=""><span>🔥 A3a — Crise interdimensionnelle</span></div>
+        <div class="bdl-item"        data-ext="ext9"  onclick="selectBooster('ext9',this)"><img src="A3b.png"   alt=""><span>🍃 A3b — La clairière d'Evoli</span></div>
+        <div class="bdl-item"        data-ext="ext10" onclick="selectBooster('ext10',this)"><img src="A4.png"   alt=""><span>🌊 A4 — Sagesse entre ciel et mer</span></div>
+        <div class="bdl-item"        data-ext="ext11" onclick="selectBooster('ext11',this)"><img src="A4a.png"  alt=""><span>💧 A4a — Source secrète</span></div>
+        <div class="bdl-item"        data-ext="ext12" onclick="selectBooster('ext12',this)"><img src="A4b.png"  alt=""><span>👑 A4b — Booster de luxe EX</span></div>
+        <div class="bdl-item"        data-ext="ext13" onclick="selectBooster('ext13',this)"><img src="promoB.png" alt=""><span>🎴 Promo-B</span></div>
+        <div class="bdl-item"        data-ext="ext14" onclick="selectBooster('ext14',this)"><img src="B1.png"   alt=""><span>🌀 B1 — Méga-ascension</span></div>
+        <div class="bdl-item"        data-ext="ext15" onclick="selectBooster('ext15',this)"><img src="B1a.png"  alt=""><span>🔥 B1a — Embrasement écarlate</span></div>
+        <div class="bdl-item"        data-ext="ext16" onclick="selectBooster('ext16',this)"><img src="B2.png"   alt=""><span>💜 B2 — Parade onirique</span></div>
+        <div class="bdl-item"        data-ext="ext17" onclick="selectBooster('ext17',this)"><img src="B2a.png"  alt=""><span>🌈 B2a — Merveilles de Paldea</span></div>
+      </div>
+    </div>
+
+    <div class="timer-box">
+      <div class="timer-label">Prochain pack disponible dans</div>
+      <div class="timer-display" id="timerDisplay">Chargement...</div>
+    </div>
+
+    <!-- Pack visuel : image du booster sélectionné -->
+    <div class="pack-visual" id="packVisual" onclick="openPack()">
+      <img id="packImgReal" src="promoA.png" alt="Booster" style="width:100%;height:100%;object-fit:contain;border-radius:14px;filter:drop-shadow(0 0 24px rgba(255,215,0,0.45));">
+    </div>
+
+    <button class="open-btn" id="openBtn" onclick="openPack()" disabled>OUVRIR LE PACK</button>
+    <div style="text-align:center;color:#777;font-size:0.8rem;max-width:300px;">
+      Chaque pack contient 5 cartes tirées<br>dans l'extension sélectionnée.<br>
+      90% Commune · 5% Rare · 3% Épique · 2% Légendaire<br>
+      Un nouveau pack toutes les <strong style="color:#aaa">1h30</strong>.
+    </div>
+  </div>
+</div>
+
+<!-- ALBUM TAB -->
+<div id="tab-album" class="tab-content">
+  <!-- Menu déroulant sélecteur d'extension album -->
+  <div class="booster-dropdown-wrap" style="margin:0 auto 24px;">
+    <div style="font-family:'Bangers',cursive;font-size:1rem;color:#aaa;letter-spacing:2px;margin-bottom:10px;text-align:center;">CHOISIR UNE EXTENSION</div>
+    <div class="booster-dropdown-box" id="albumDropdownBox" onclick="toggleAlbumDropdown()">
+      <img class="bdd-img" id="addSelectedImg" src="promoA.png" alt="">
+      <span class="bdd-label" id="addSelectedLabel">🎴 Promo-A</span>
+      <span class="bdd-arrow" id="addArrow">▼</span>
+    </div>
+    <div class="booster-dropdown-list" id="albumDropdownList">
+      <div class="bdl-item active" data-ext="ext1"  onclick="switchExtension('ext1',this)"><img src="promoA.png" alt=""><span>🎴 Promo-A</span></div>
+      <div class="bdl-item"        data-ext="ext2"  onclick="switchExtension('ext2',this)"><img src="A1.png"    alt=""><span>⚡ A1 — Puissance génétique</span></div>
+      <div class="bdl-item"        data-ext="ext3"  onclick="switchExtension('ext3',this)"><img src="A1a.png"   alt=""><span>🌺 A1a — L'île fabuleuse</span></div>
+      <div class="bdl-item"        data-ext="ext4"  onclick="switchExtension('ext4',this)"><img src="A2.png"    alt=""><span>🌀 A2 — Choc spatio-temporel</span></div>
+      <div class="bdl-item"        data-ext="ext5"  onclick="switchExtension('ext5',this)"><img src="A2a.png"   alt=""><span>✨ A2a — Lumière triomphale</span></div>
+      <div class="bdl-item"        data-ext="ext6"  onclick="switchExtension('ext6',this)"><img src="A2b.png"   alt=""><span>🎊 A2b — Réjouissances rayonnantes</span></div>
+      <div class="bdl-item"        data-ext="ext7"  onclick="switchExtension('ext7',this)"><img src="A3.png"    alt=""><span>🌟 A3 — Gardiens astraux</span></div>
+      <div class="bdl-item"        data-ext="ext8"  onclick="switchExtension('ext8',this)"><img src="A3a.png"   alt=""><span>🔥 A3a — Crise interdimensionnelle</span></div>
+      <div class="bdl-item"        data-ext="ext9"  onclick="switchExtension('ext9',this)"><img src="A3b.png"   alt=""><span>🍃 A3b — La clairière d'Evoli</span></div>
+      <div class="bdl-item"        data-ext="ext10" onclick="switchExtension('ext10',this)"><img src="A4.png"   alt=""><span>🌊 A4 — Sagesse entre ciel et mer</span></div>
+      <div class="bdl-item"        data-ext="ext11" onclick="switchExtension('ext11',this)"><img src="A4a.png"  alt=""><span>💧 A4a — Source secrète</span></div>
+      <div class="bdl-item"        data-ext="ext12" onclick="switchExtension('ext12',this)"><img src="A4b.png"  alt=""><span>👑 A4b — Booster de luxe EX</span></div>
+      <div class="bdl-item"        data-ext="ext13" onclick="switchExtension('ext13',this)"><img src="promoB.png" alt=""><span>🎴 Promo-B</span></div>
+      <div class="bdl-item"        data-ext="ext14" onclick="switchExtension('ext14',this)"><img src="B1.png"   alt=""><span>🌀 B1 — Méga-ascension</span></div>
+      <div class="bdl-item"        data-ext="ext15" onclick="switchExtension('ext15',this)"><img src="B1a.png"  alt=""><span>🔥 B1a — Embrasement écarlate</span></div>
+      <div class="bdl-item"        data-ext="ext16" onclick="switchExtension('ext16',this)"><img src="B2.png"   alt=""><span>💜 B2 — Parade onirique</span></div>
+      <div class="bdl-item"        data-ext="ext17" onclick="switchExtension('ext17',this)"><img src="B2a.png"  alt=""><span>🌈 B2a — Merveilles de Paldea</span></div>
+    </div>
+  </div>
+
+  <div class="album-stats">
+    <div class="stat-chip">Cartes : <span id="ownedCount">0</span> / <span id="totalCount">0</span></div>
+    <div class="stat-chip">Complété : <span id="completionPct">0</span>%</div>
+    <div class="stat-chip">Doublons : <span id="dupCount">0</span></div>
+  </div>
+  <div class="progress-bar-wrap" style="margin:0 auto 24px;">
+    <div class="progress-bar-fill" id="progressBar" style="width:0%"></div>
+  </div>
+  <div id="albumContainer"></div>
+</div>
+
+<!-- REVEAL OVERLAY -->
+<div class="reveal-overlay" id="revealOverlay">
+  <div class="reveal-title">✨ OUVERTURE DU PACK ✨</div>
+  <div class="reveal-cards" id="revealCards"></div>
+  <div class="reveal-actions">
+    <button class="flip-all-btn" onclick="flipAll()">Retourner tout</button>
+    <button class="close-reveal-btn" id="closeRevealBtn" onclick="closeReveal()" disabled>Fermer</button>
+  </div>
+</div>
+
+<!-- MINE TAB -->
+<div id="tab-mine" class="tab-content">
+  <div class="mine-area">
+    <div class="mine-stats-row">
+      <div class="mine-stat">⛏️ Clics : <span id="mineClicks">0</span></div>
+      <div class="mine-stat">🪙 Pièces : <span id="mineCoins">0</span></div>
+      <div class="mine-stat">🎁 Packs achetés : <span id="minePacks">0</span></div>
+    </div>
+    <div>
+      <button class="mine-btn" onclick="doClick(event)">
+        <div class="mine-btn-icon">⛏️</div>
+        <div class="mine-btn-label">MINER</div>
+      </button>
+    </div>
+    <div style="width:100%;max-width:340px;">
+      <div class="mine-progress-wrap">
+        <div class="mine-progress-fill" id="mineProgressFill" style="width:0%"></div>
+      </div>
+      <div class="mine-progress-label" id="mineProgressLabel">0 / 100 clics</div>
+    </div>
+    <div class="shop-title">🏪 Boutique de Packs</div>
+    <div class="shop-grid">
+      <div class="shop-pack plus">
+        <div class="shop-pack-icon">🔵</div>
+        <div class="shop-pack-name">Pokemon TCG +</div>
+        <div class="shop-pack-rates"><b>Commune</b> 75% · <b>Rare</b> 15%<br><b>Épique</b> 6% · <b>Légendaire</b> 4%</div>
+        <div class="shop-pack-price">🪙 100 pièces</div>
+        <button class="shop-pack-buy" id="buyPlus" onclick="buySpecialPack('plus')">Acheter</button>
+      </div>
+      <div class="shop-pack xl">
+        <div class="shop-pack-icon">🟣</div>
+        <div class="shop-pack-name">Pokemon TCG XL</div>
+        <div class="shop-pack-rates"><b>Commune</b> 65% · <b>Rare</b> 20%<br><b>Épique</b> 10% · <b>Légendaire</b> 5%</div>
+        <div class="shop-pack-price">🪙 1 000 pièces</div>
+        <button class="shop-pack-buy" id="buyXL" onclick="buySpecialPack('xl')">Acheter</button>
+      </div>
+      <div class="shop-pack xxl">
+        <div class="shop-pack-icon">🌟</div>
+        <div class="shop-pack-name">Pokemon TCG XXL</div>
+        <div class="shop-pack-rates"><b>Commune</b> 50% · <b>Rare</b> 30%<br><b>Épique</b> 10% · <b>Légendaire</b> 10%</div>
+        <div class="shop-pack-price">🪙 10 000 pièces</div>
+        <button class="shop-pack-buy" id="buyXXL" onclick="buySpecialPack('xxl')">Acheter</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- COIN REWARD POPUP -->
+<div class="coin-reward-popup" id="coinRewardPopup">
+  <div class="reward-icon" id="rewardIcon">🪙</div>
+  <div class="reward-title" id="rewardTitle">+1 PIÈCE !</div>
+  <div class="reward-sub" id="rewardSub">Continue à miner !</div>
+  <button class="reward-close" onclick="closeCoinReward()">Super !</button>
+</div>
+
+<!-- SAVE TAB -->
+<div id="tab-save" class="tab-content">
+  <div class="save-area">
+    <div class="save-card">
+      <div class="save-card-icon">📤</div>
+      <div class="save-card-title">Exporter ma progression</div>
+      <div class="save-card-desc">Génère un code de sauvegarde à copier et garder en lieu sûr.</div>
+      <button class="save-btn export-btn" onclick="exportSave()">Exporter</button>
+      <textarea id="exportBox" class="save-textarea" readonly placeholder="Ton code apparaîtra ici..."></textarea>
+      <button class="copy-btn" id="copyBtn" onclick="copySave()" style="display:none">📋 Copier le code</button>
+    </div>
+    <div class="save-card">
+      <div class="save-card-icon">📥</div>
+      <div class="save-card-title">Importer une sauvegarde</div>
+      <div class="save-card-desc">Colle ton code de sauvegarde pour restaurer ta progression.</div>
+      <textarea id="importBox" class="save-textarea" placeholder="Colle ton code ici..."></textarea>
+      <button class="save-btn import-btn" onclick="importSave()">Importer</button>
+      <div id="importMsg" class="save-msg"></div>
+    </div>
+    <div class="save-card danger-card">
+      <div class="save-card-icon">⚠️</div>
+      <div class="save-card-title">Réinitialiser</div>
+      <div class="save-card-desc">Efface toute ta progression. Cette action est <strong>irréversible</strong> et n'est possible qu'<strong>une fois toutes les 24h</strong>.</div>
+      <div id="resetCooldownMsg" style="font-size:0.82rem;color:#facc15;font-weight:800;min-height:22px;"></div>
+      <button class="save-btn reset-btn" id="resetMainBtn" onclick="confirmReset()">Réinitialiser</button>
+      <div id="resetConfirm" style="display:none;margin-top:12px;">
+        <div style="color:#f87171;font-size:0.85rem;margin-bottom:8px;">Es-tu sûr ? Toute ta collection sera perdue.</div>
+        <div style="display:flex;gap:8px;justify-content:center;">
+          <button class="save-btn reset-btn" onclick="doReset()">Oui, tout effacer</button>
+          <button class="save-btn" style="background:transparent;border:2px solid #aaa;color:#aaa;" onclick="cancelReset()">Annuler</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SELL TOAST -->
+<div class="sell-toast" id="sellToast"></div>
+
+<!-- CARD MODAL -->
+<div class="card-modal" id="cardModal" onclick="closeModal()">
+  <div class="card-modal-inner" onclick="event.stopPropagation()">
+    <img id="modalImg" src="" alt="">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// CARD DATA — par extension
+// ============================================================
+const EXTENSIONS = {
+  ext1: {
+    label: 'Promo-A',
+    icon: '🎴',
+    color: '#e94560',
+    boosterImg: 'promoA.png',
+    cards: [
+      { id:1,  name:"Leveinard",                        rarity:"common",    type:"character", img:"9.png" },
+      { id:2,  name:"Miaouss",                          rarity:"common",    type:"character", img:"10.png" },
+      { id:3,  name:"Papilusion",                       rarity:"common",    type:"character", img:"11.png" },
+      { id:4,  name:"Lokhlass EX",                      rarity:"common",    type:"character", img:"12.png" },
+      { id:5,  name:"Pikachu",                          rarity:"common",    type:"character", img:"13.png" },
+      { id:6,  name:"Mélofée",                          rarity:"common",    type:"character", img:"14.png" },
+      { id:7,  name:"Férosinge",                        rarity:"common",    type:"character", img:"15.png" },
+      { id:8,  name:"Amphinobi",                        rarity:"common",    type:"character", img:"16.png" },
+      { id:9,  name:"Spectrum",                         rarity:"common",    type:"character", img:"17.png" },
+      { id:10, name:"Onix",                             rarity:"common",    type:"character", img:"18.png" },
+      { id:11, name:"Rondoudou",                        rarity:"common",    type:"character", img:"19.png" },
+      { id:12, name:"Bulbizarre",                       rarity:"common",    type:"character", img:"20.png" },
+      { id:13, name:"Magnéti",                          rarity:"common",    type:"character", img:"21.png" },
+      { id:14, name:"Sulfura EX",                       rarity:"common",    type:"character", img:"22.png" },
+      { id:15, name:"Vipélierre",                       rarity:"common",    type:"character", img:"23.png" },
+      { id:16, name:"Pyrax",                            rarity:"common",    type:"character", img:"24.png" },
+      { id:17, name:"Evoli",                            rarity:"common",    type:"character", img:"25.png" },
+      { id:18, name:"Pashmilla",                        rarity:"common",    type:"character", img:"26.png" },
+      { id:19, name:"Salamèche",                        rarity:"common",    type:"character", img:"27.png" },
+      { id:20, name:"Carapuce",                         rarity:"common",    type:"character", img:"28.png" },
+      { id:21, name:"Tortipouss",                       rarity:"common",    type:"character", img:"29.png" },
+      { id:22, name:"Elekable",                         rarity:"common",    type:"character", img:"30.png" },
+      { id:23, name:"Cresselia EX",                     rarity:"common",    type:"character", img:"31.png" },
+      { id:24, name:"Feuforêve",                        rarity:"common",    type:"character", img:"32.png" },
+      { id:25, name:"Airmure",                          rarity:"common",    type:"character", img:"33.png" },
+      { id:26, name:"Ouisticram",                       rarity:"common",    type:"character", img:"34.png" },
+      { id:27, name:"Togepi",                           rarity:"common",    type:"character", img:"35.png" },
+      { id:28, name:"Darkrai EX",                       rarity:"common",    type:"character", img:"36.png" },
+      { id:29, name:"Ceriflor",                         rarity:"common",    type:"character", img:"37.png" },
+      { id:30, name:"Raichu",                           rarity:"common",    type:"character", img:"38.png" },
+      { id:31, name:"Tarinor",                          rarity:"common",    type:"character", img:"39.png" },
+      { id:32, name:"Etouraptor",                       rarity:"common",    type:"character", img:"40.png" },
+      { id:33, name:"Manaphy",                          rarity:"common",    type:"character", img:"41.png" },
+      { id:34, name:"Ronflex",                          rarity:"common",    type:"character", img:"42.png" },
+      { id:35, name:"Mustéflott",                       rarity:"common",    type:"character", img:"43.png" },
+      { id:36, name:"Mackogneur",                       rarity:"common",    type:"character", img:"44.png" },
+      { id:37, name:"Abo",                              rarity:"common",    type:"character", img:"45.png" },
+      { id:38, name:"Keunotor",                         rarity:"common",    type:"character", img:"46.png" },
+      { id:39, name:"Pachirisu",                        rarity:"common",    type:"character", img:"47.png" },
+      { id:40, name:"Riolu",                            rarity:"common",    type:"character", img:"48.png" },
+      { id:41, name:"Noeunoeuf",                        rarity:"common",    type:"character", img:"49.png" },
+      { id:42, name:"Grenousse",                        rarity:"common",    type:"character", img:"50.png" },
+      { id:43, name:"Canarticho",                       rarity:"common",    type:"character", img:"51.png" },
+      { id:44, name:"Rayquaza",                         rarity:"common",    type:"character", img:"52.png" },
+      { id:45, name:"Rayquaza EX",                      rarity:"common",    type:"character", img:"53.png" },
+      { id:46, name:"Cosmog",                           rarity:"common",    type:"character", img:"54.png" },
+      { id:47, name:"Lougaroc",                         rarity:"common",    type:"character", img:"55.png" },
+      { id:48, name:"Noadkoko d'Alola",                 rarity:"common",    type:"character", img:"56.png" },
+      { id:49, name:"Crabagarre",                       rarity:"common",    type:"character", img:"57.png" },
+      { id:50, name:"Tadmorv d'Alola",                  rarity:"common",    type:"character", img:"58.png" },
+      { id:51, name:"Bazoucan",                         rarity:"common",    type:"character", img:"59.png" },
+      { id:52, name:"Katagami",                         rarity:"common",    type:"character", img:"60.png" },
+      { id:53, name:"Pierroteknik",                     rarity:"common",    type:"character", img:"61.png" },
+      { id:54, name:"Câblifère",                        rarity:"common",    type:"character", img:"62.png" },
+      { id:55, name:"Necrozma Ailes de l'aurore",       rarity:"common",    type:"character", img:"63.png" },
+      { id:56, name:"Necrozma Crinière du couchant",    rarity:"common",    type:"character", img:"64.png" },
+      { id:57, name:"Ama-Ama",                          rarity:"common",    type:"character", img:"65.png" },
+      { id:58, name:"Ultra-Necrozma EX",                rarity:"common",    type:"character", img:"66.png" },
+      { id:59, name:"Vémini",                           rarity:"common",    type:"character", img:"67.png" },
+      { id:60, name:"Nounourson",                       rarity:"common",    type:"character", img:"68.png" },
+      { id:61, name:"Tokorico EX",                      rarity:"common",    type:"character", img:"69.png" },
+      { id:62, name:"Sorbébé",                          rarity:"common",    type:"character", img:"70.png" },
+      { id:63, name:"Voltali",                          rarity:"common",    type:"character", img:"71.png" },
+      { id:64, name:"Draco",                            rarity:"common",    type:"character", img:"72.png" },
+      { id:65, name:"Nanméouïe",                        rarity:"common",    type:"character", img:"73.png" },
+      { id:66, name:"Togedemaru",                       rarity:"common",    type:"character", img:"74.png" },
+      { id:67, name:"Rongrigou",                        rarity:"common",    type:"character", img:"75.png" },
+      { id:68, name:"Evoli",                            rarity:"common",    type:"character", img:"76.png" },
+      { id:69, name:"Hypotrempe",                       rarity:"common",    type:"character", img:"77.png" },
+      { id:70, name:"Loupio",                           rarity:"common",    type:"character", img:"78.png" },
+      { id:71, name:"Démolosse",                        rarity:"common",    type:"character", img:"79.png" },
+      { id:72, name:"Kangourex",                        rarity:"common",    type:"character", img:"80.png" },
+      { id:73, name:"Leuphorie EX",                     rarity:"common",    type:"character", img:"81.png" },
+      { id:74, name:"Marill",                           rarity:"common",    type:"character", img:"82.png" },
+      { id:75, name:"Dimoret",                          rarity:"common",    type:"character", img:"83.png" },
+      { id:76, name:"Tropius",                          rarity:"common",    type:"character", img:"84.png" },
+      { id:77, name:"Ptitard",                          rarity:"common",    type:"character", img:"85.png" },
+      { id:78, name:"Milobellus",                       rarity:"common",    type:"character", img:"86.png" },
+      { id:79, name:"Zorua",                            rarity:"common",    type:"character", img:"87.png" },
+      { id:80, name:"Ecremeuh",                         rarity:"common",    type:"character", img:"88.png" },
+      { id:81, name:"Phanpy",                           rarity:"common",    type:"character", img:"89.png" },
+      { id:82, name:"Entei EX",                         rarity:"common",    type:"character", img:"90.png" },
+      { id:83, name:"Pikachu",                          rarity:"common",    type:"character", img:"91.png" },
+      { id:84, name:"Raichu EX",                        rarity:"common",    type:"character", img:"92.png" },
+      { id:85, name:"Mimiqui",                          rarity:"common",    type:"character", img:"93.png" },
+      { id:86, name:"Mackogneur",                       rarity:"common",    type:"character", img:"94.png" },
+      { id:87, name:"Regigigas",                        rarity:"common",    type:"character", img:"95.png" },
+      { id:88, name:"Shaymin",                          rarity:"common",    type:"character", img:"96.png" },
+      { id:89, name:"Absol",                            rarity:"common",    type:"character", img:"97.png" },
+      // Objets
+      { id:90, name:"Potion",                           rarity:"common",    type:"object",    img:"1.png" },
+      { id:91, name:"Vitesse +",                        rarity:"common",    type:"object",    img:"2.png" },
+      { id:92, name:"Scrute Main",                      rarity:"common",    type:"object",    img:"3.png" },
+      { id:93, name:"Pokédex",                          rarity:"common",    type:"object",    img:"4.png" },
+      { id:94, name:"Poké Ball",                        rarity:"common",    type:"object",    img:"5.png" },
+      { id:95, name:"Carton Rouge",                     rarity:"common",    type:"object",    img:"6.png" },
+      { id:96, name:"Recherches Professorales",         rarity:"common",    type:"object",    img:"7.png" },
+      { id:97, name:"Pokédex",                          rarity:"common",    type:"object",    img:"8.png" },
+      // Rares
+      { id:98,  name:"Pikachu",           rarity:"rare",      type:"character", img:"98.png" },
+      { id:99,  name:"Mewtwo",            rarity:"rare",      type:"character", img:"99.png" },
+      { id:100, name:"Florizarre",        rarity:"rare",      type:"character", img:"100.png" },
+      { id:101, name:"Pikachu",           rarity:"rare",      type:"character", img:"101.png" },
+      { id:102, name:"Tortank",           rarity:"rare",      type:"character", img:"102.png" },
+      { id:103, name:"Tiplouf",           rarity:"rare",      type:"character", img:"103.png" },
+      { id:104, name:"Griknot",           rarity:"rare",      type:"character", img:"104.png" },
+      { id:105, name:"Poussacha",         rarity:"rare",      type:"character", img:"105.png" },
+      { id:106, name:"Pohmarmotte",       rarity:"rare",      type:"character", img:"106.png" },
+      { id:107, name:"Mimiqui",           rarity:"rare",      type:"character", img:"107.png" },
+      { id:108, name:"Feunard d'Alola",   rarity:"rare",      type:"character", img:"108.png" },
+      { id:109, name:"Zeraora",           rarity:"rare",      type:"character", img:"109.png" },
+      { id:110, name:"Charmilly",         rarity:"rare",      type:"character", img:"110.png" },
+      { id:111, name:"Mélo",              rarity:"rare",      type:"character", img:"111.png" },
+      { id:112, name:"Latias",            rarity:"rare",      type:"character", img:"112.png" },
+      { id:113, name:"Zoroark",           rarity:"rare",      type:"character", img:"113.png" },
+      // Épiques
+      { id:114, name:"Rayquaza EX",       rarity:"epic",      type:"character", img:"114.png" },
+      { id:115, name:"Evoli EX",          rarity:"epic",      type:"character", img:"115.png" },
+      // Légendaires
+      { id:116, name:"Mewtwo EX",         rarity:"legendary", type:"character", img:"116.png" },
+      { id:117, name:"Motorizard",        rarity:"legendary", type:"character", img:"117.png" },
+    ]
+  },
+
+  ext2: {
+    label: 'A1 — Puissance génétique',
+    icon: '⚡', color: '#facc15', boosterImg: 'A1.png',
+    cards: [
+    { id:118, name:"Bulbizarre",        rarity:"common",    type:"character", img:"1 (1).png"},
+      { id:119, name:"Herbizarre",        rarity:"common",    type:"character", img:"2 (1).png"},
+      { id:120, name:"Florizarre",        rarity:"common",    type:"character", img:"3 (1).png"},
+      { id:121, name:"Florizarre EX",     rarity:"common",    type:"character", img:"4 (1).png"},
+      { id:122, name:"Chenipan",          rarity:"common",    type:"character", img:"5 (1).png"},
+      { id:123, name:"Chrysacier",        rarity:"common",    type:"character", img:"6 (1).png"},
+      { id:124, name:"Papilusion",        rarity:"common",    type:"character", img:"7 (1).png"},
+      { id:125, name:"Aspicot",           rarity:"common",    type:"character", img:"8 (1).png"},
+      { id:126, name:"Coconfort",         rarity:"common",    type:"character", img:"9 (1).png"},
+      { id:127, name:"Dardargnan",        rarity:"common",    type:"character", img:"10 (1).png"},
+      { id:128, name:"Mystherbe",         rarity:"common",    type:"character", img:"11 (1).png"},
+      { id:129, name:"Ortide",            rarity:"common",    type:"character", img:"12 (1).png"},
+      { id:130, name:"Rafflesia",         rarity:"common",    type:"character", img:"13 (1).png"},
+      { id:131, name:"Paras",             rarity:"common",    type:"character", img:"14 (1).png"},
+      { id:132, name:"Parasect",          rarity:"common",    type:"character", img:"15 (1).png"},
+      { id:133, name:"Mimitoss",          rarity:"common",    type:"character", img:"16 (1).png"},
+      { id:134, name:"Aéromite",          rarity:"common",    type:"character", img:"17 (1).png"},
+      { id:135, name:"Chétiflor",         rarity:"common",    type:"character", img:"18 (1).png"},
+      { id:136, name:"Boustiflor",        rarity:"common",    type:"character", img:"19 (1).png"},
+      { id:137, name:"Empiflor",          rarity:"common",    type:"character", img:"20 (1).png"},
+      { id:138, name:"Noeunoeuf",         rarity:"common",    type:"character", img:"21 (1).png"},
+      { id:139, name:"Noadkoko",          rarity:"common",    type:"character", img:"22 (1).png"},
+      { id:140, name:"Noadkoko EX",       rarity:"common",    type:"character", img:"23 (1).png"},
+      { id:141, name:"Saquedeneu",        rarity:"common",    type:"character", img:"24 (1).png"},
+      { id:142, name:"Insécateur",        rarity:"common",    type:"character", img:"25 (1).png"},
+      { id:143, name:"Scarabrute",        rarity:"common",    type:"character", img:"26 (1).png"},
+      { id:144, name:"Doudouvet",         rarity:"common",    type:"character", img:"27 (1).png"},
+      { id:145, name:"Farfaduvet",        rarity:"common",    type:"character", img:"28 (1).png"},
+      { id:146, name:"Chlorobule",        rarity:"common",    type:"character", img:"29 (1).png"},
+      { id:147, name:"Fragilady",         rarity:"common",    type:"character", img:"30 (1).png"},
+      { id:148, name:"Cabriolaine",       rarity:"common",    type:"character", img:"31 (1).png"},
+    ]
+  },
+  ext3: {
+    label: "A1a — L'île fabuleuse",
+    icon: '🌺', color: '#34d399', boosterImg: 'A1a.png',
+    cards: []
+  },
+  ext4: {
+    label: 'A2 — Choc spatio-temporel',
+    icon: '🌀', color: '#60a5fa', boosterImg: 'A2.png',
+    cards: []
+  },
+  ext5: {
+    label: 'A2a — Lumière triomphale',
+    icon: '✨', color: '#fbbf24', boosterImg: 'A2a.png',
+    cards: []
+  },
+  ext6: {
+    label: 'A2b — Réjouissances rayonnantes',
+    icon: '🎊', color: '#f0abfc', boosterImg: 'A2b.png',
+    cards: []
+  },
+  ext7: {
+    label: 'A3 — Gardiens astraux',
+    icon: '🌟', color: '#38bdf8', boosterImg: 'A3.png',
+    cards: []
+  },
+  ext8: {
+    label: 'A3a — Crise interdimensionnelle',
+    icon: '🔥', color: '#f87171', boosterImg: 'A3a.png',
+    cards: []
+  },
+  ext9: {
+    label: "A3b — La clairière d'Evoli",
+    icon: '🍃', color: '#86efac', boosterImg: 'A3b.png',
+    cards: []
+  },
+  ext10: {
+    label: 'A4 — Sagesse entre ciel et mer',
+    icon: '🌊', color: '#7dd3fc', boosterImg: 'A4.png',
+    cards: []
+  },
+  ext11: {
+    label: 'A4a — Source secrète',
+    icon: '💧', color: '#93c5fd', boosterImg: 'A4a.png',
+    cards: []
+  },
+  ext12: {
+    label: 'A4b — Booster de luxe EX',
+    icon: '👑', color: '#fde68a', boosterImg: 'A4b.png',
+    cards: []
+  },
+  ext13: {
+    label: 'Promo-B',
+    icon: '🎴', color: '#4ade80', boosterImg: 'promoB.png',
+    cards: []
+  },
+  ext14: {
+    label: 'B1 — Méga-ascension',
+    icon: '🌀', color: '#a78bfa', boosterImg: 'B1.png',
+    cards: []
+  },
+  ext15: {
+    label: 'B1a — Embrasement écarlate',
+    icon: '🔥', color: '#fb923c', boosterImg: 'B1a.png',
+    cards: []
+  },
+  ext16: {
+    label: 'B2 — Parade onirique',
+    icon: '💜', color: '#c084fc', boosterImg: 'B2.png',
+    cards: []
+  },
+  ext17: {
+    label: 'B2a — Merveilles de Paldea',
+    icon: '🌈', color: '#6ee7b7', boosterImg: 'B2a.png',
+    cards: []
+  }
+};
+
+// Toutes les cartes (pour l'ouverture de packs)
+const CARDS = Object.values(EXTENSIONS).flatMap(e => e.cards);
+
+let currentExtension = 'ext1';
+let currentBooster   = 'ext1'; // extension dont les cartes sont tirées à l'ouverture
+
+const RARITY_WEIGHTS  = { common:90, rare:5, epic:3, legendary:2 };
+const DUPLICATE_CHANCE = 0.05;
+const PACK_COOLDOWN   = 1 * 1000;
+const PACK_SIZE       = 5;
+const STORAGE_KEY     = 'tcg_collection_v1';
+const TIMER_KEY       = 'tcg_last_pack_v1';
+const MINE_KEY        = 'tcg_mine_v1';
+const RESET_KEY       = 'tcg_last_reset_v1';
+const RESET_COOLDOWN  = 1 * 1000;
+
+// STATE
+let collection    = {};
+let lastPackTime  = 0;
+let mineClicks    = 0;
+let mineCoins     = 0;
+let minePacks     = 0;
+let lastResetTime = 0;
+
+function saveState() {
+  const mineData = JSON.stringify({ mineClicks, mineCoins, minePacks });
+  try {
+    window.storage.set(STORAGE_KEY, JSON.stringify(collection));
+    window.storage.set(TIMER_KEY,   String(lastPackTime));
+    window.storage.set(MINE_KEY,    mineData);
+    window.storage.set(RESET_KEY,   String(lastResetTime));
+  } catch(e) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(collection));
+    localStorage.setItem(TIMER_KEY,   String(lastPackTime));
+    localStorage.setItem(MINE_KEY,    mineData);
+    localStorage.setItem(RESET_KEY,   String(lastResetTime));
+  }
+}
+
+async function loadState() {
+  try {
+    const col   = await window.storage.get(STORAGE_KEY);
+    const timer = await window.storage.get(TIMER_KEY);
+    const mine  = await window.storage.get(MINE_KEY);
+    const reset = await window.storage.get(RESET_KEY);
+    if (col)   collection    = JSON.parse(col.value);
+    if (timer) lastPackTime  = parseInt(timer.value) || 0;
+    if (mine)  { const m = JSON.parse(mine.value); mineClicks=m.mineClicks||0; mineCoins=m.mineCoins||0; minePacks=m.minePacks||0; }
+    if (reset) lastResetTime = parseInt(reset.value) || 0;
+  } catch(e) {
+    const col   = localStorage.getItem(STORAGE_KEY);
+    const timer = localStorage.getItem(TIMER_KEY);
+    const mine  = localStorage.getItem(MINE_KEY);
+    const reset = localStorage.getItem(RESET_KEY);
+    if (col)   try { collection = JSON.parse(col); } catch(ex){}
+    if (timer) lastPackTime  = parseInt(timer) || 0;
+    if (mine)  try { const m = JSON.parse(mine); mineClicks=m.mineClicks||0; mineCoins=m.mineCoins||0; minePacks=m.minePacks||0; } catch(ex){}
+    if (reset) lastResetTime = parseInt(reset) || 0;
+  }
+}
+
+// TABS
+function showTab(tab) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  event.target.classList.add('active');
+  if (tab === 'album') renderAlbum();
+}
+
+// EXTENSION SWITCHER
+// ALBUM DROPDOWN
+function toggleAlbumDropdown() {
+  const list  = document.getElementById('albumDropdownList');
+  const box   = document.getElementById('albumDropdownBox');
+  const arrow = document.getElementById('addArrow');
+  const open  = list.classList.toggle('open');
+  box.classList.toggle('open', open);
+  arrow.classList.toggle('open', open);
+}
+
+function switchExtension(extKey, item) {
+  currentExtension = extKey;
+  const ext = EXTENSIONS[extKey];
+  // Update album dropdown display
+  document.getElementById('addSelectedImg').src         = ext.boosterImg;
+  document.getElementById('addSelectedLabel').textContent = ext.icon + ' ' + ext.label;
+  document.querySelectorAll('#albumDropdownList .bdl-item').forEach(i => i.classList.remove('active'));
+  item.classList.add('active');
+  // Close dropdown
+  document.getElementById('albumDropdownList').classList.remove('open');
+  document.getElementById('albumDropdownBox').classList.remove('open');
+  document.getElementById('addArrow').classList.remove('open');
+  renderAlbum();
+}
+
+// BOOSTER DROPDOWN
+function toggleBoosterDropdown() {
+  const list  = document.getElementById('boosterDropdownList');
+  const box   = document.getElementById('boosterDropdownBox');
+  const arrow = document.getElementById('bddArrow');
+  const open  = list.classList.toggle('open');
+  box.classList.toggle('open', open);
+  arrow.classList.toggle('open', open);
+}
+
+function selectBooster(extKey, item) {
+  currentBooster = extKey;
+  const ext = EXTENSIONS[extKey];
+  // Update dropdown display
+  document.getElementById('bddSelectedImg').src   = ext.boosterImg;
+  document.getElementById('bddSelectedLabel').textContent = ext.icon + ' ' + ext.label;
+  document.querySelectorAll('.bdl-item').forEach(i => i.classList.remove('active'));
+  item.classList.add('active');
+  // Close dropdown
+  document.getElementById('boosterDropdownList').classList.remove('open');
+  document.getElementById('boosterDropdownBox').classList.remove('open');
+  document.getElementById('bddArrow').classList.remove('open');
+  // Update pack visual image
+  document.getElementById('packImgReal').src = ext.boosterImg;
+  // Update open button state
+  const hasCards = ext.cards.length > 0;
+  if (!hasCards) {
+    document.getElementById('timerDisplay').textContent = '⛔ Aucune carte';
+    document.getElementById('timerDisplay').className   = 'timer-display';
+    document.getElementById('openBtn').disabled = true;
+    document.getElementById('packVisual').classList.add('disabled');
+  } else {
+    updateTimer();
+  }
+}
+
+// Close dropdowns when clicking outside
+document.addEventListener('click', e => {
+  if (!e.target.closest('#boosterDropdownBox') && !e.target.closest('#boosterDropdownList')) {
+    document.getElementById('boosterDropdownList').classList.remove('open');
+    document.getElementById('boosterDropdownBox').classList.remove('open');
+    document.getElementById('bddArrow').classList.remove('open');
+  }
+  if (!e.target.closest('#albumDropdownBox') && !e.target.closest('#albumDropdownList')) {
+    const al = document.getElementById('albumDropdownList');
+    if (al) {
+      al.classList.remove('open');
+      document.getElementById('albumDropdownBox').classList.remove('open');
+      document.getElementById('addArrow').classList.remove('open');
+    }
+  }
+});
+
+
+function updateTimer() {
+  const remaining = PACK_COOLDOWN - (Date.now() - lastPackTime);
+  const timerEl   = document.getElementById('timerDisplay');
+  const openBtn   = document.getElementById('openBtn');
+  const packVisual= document.getElementById('packVisual');
+  if (remaining <= 0 || lastPackTime === 0) {
+    timerEl.textContent = '✅ PRÊT !';
+    timerEl.className   = 'timer-display ready';
+    openBtn.disabled    = false;
+    packVisual.classList.remove('disabled');
+  } else {
+    const h=Math.floor(remaining/3600000), m=Math.floor((remaining%3600000)/60000), s=Math.floor((remaining%60000)/1000);
+    timerEl.textContent = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    timerEl.className   = 'timer-display';
+    openBtn.disabled    = true;
+    packVisual.classList.add('disabled');
+  }
+}
+
+// PACK OPENING
+function getRandomCard() {
+  const pool = EXTENSIONS[currentBooster].cards;
+  const available = pool.filter(c => (RARITY_WEIGHTS[c.rarity]||0) > 0);
+  if (!available.length) return null;
+  const total = available.reduce((s,c) => s + RARITY_WEIGHTS[c.rarity], 0);
+  let rand = Math.random() * total;
+  for (const card of available) { rand -= RARITY_WEIGHTS[card.rarity]; if (rand <= 0) return card; }
+  return available[Math.floor(Math.random() * available.length)];
+}
+
+function openPack() {
+  const now = Date.now();
+  if (lastPackTime !== 0 && now - lastPackTime < PACK_COOLDOWN) return;
+  const pool = EXTENSIONS[currentBooster].cards;
+  if (!pool.length) return;
+  lastPackTime = now;
+  const drawnCards = [], drawnIds = new Set();
+  for (let i = 0; i < PACK_SIZE; i++) {
+    const allowDup = Math.random() < DUPLICATE_CHANCE;
+    let card = getRandomCard();
+    if (!card) break;
+    if (!allowDup) { let a=0; while (drawnIds.has(card.id)&&a<10){card=getRandomCard();a++;} }
+    drawnIds.add(card.id); drawnCards.push(card);
+  }
+  drawnCards.forEach(card => { collection[card.id] = (collection[card.id]||0)+1; });
+  saveState(); updateTimer(); showReveal(drawnCards);
+}
+
+// REVEAL
+let flippedCount = 0;
+function showReveal(cards) {
+  flippedCount = 0;
+  const overlay   = document.getElementById('revealOverlay');
+  const container = document.getElementById('revealCards');
+  const closeBtn  = document.getElementById('closeRevealBtn');
+  closeBtn.disabled = true;
+  container.innerHTML = '';
+  const rarityLabels = { common:'Commune', rare:'⭐⭐ Rare', epic:'⭐⭐⭐ Épique', legendary:'👑 Légendaire' };
+  cards.forEach((card, i) => {
+    const isNew = collection[card.id] === 1;
+    const label = card.type === 'object' ? 'Objet' : rarityLabels[card.rarity];
+    const wrapper = document.createElement('div');
+    wrapper.className = 'reveal-card-wrapper';
+    wrapper.innerHTML = `
+      <div class="reveal-card" id="reveal-${i}" data-rarity="${card.rarity}" onclick="flipCard(${i},${cards.length})">
+        <div class="card-face card-back">🃏</div>
+        <div class="card-face card-front">
+          <img src="${card.img}" alt="${card.name}" onerror="this.style.background='#333'">
+          <div class="card-name-overlay">${card.name}</div>
+          <div class="rarity-badge rarity-${card.rarity}">${label}</div>
+          ${isNew ? '<div class="new-badge">NOUVEAU</div>' : ''}
+        </div>
+      </div>`;
+    container.appendChild(wrapper);
+  });
+  overlay.classList.add('active');
+}
+function flipCard(index, total) {
+  const card = document.getElementById('reveal-'+index);
+  if (!card.classList.contains('flipped')) {
+    card.classList.add('flipped');
+    if (card.dataset.rarity==='legendary') card.classList.add('legendary-glow');
+    flippedCount++;
+    if (flippedCount >= total) document.getElementById('closeRevealBtn').disabled = false;
+  }
+}
+function flipAll() {
+  document.querySelectorAll('.reveal-card').forEach(c => {
+    c.classList.add('flipped');
+    if (c.dataset.rarity==='legendary') c.classList.add('legendary-glow');
+  });
+  document.getElementById('closeRevealBtn').disabled = false;
+}
+function closeReveal() { document.getElementById('revealOverlay').classList.remove('active'); renderAlbum(); }
+
+// ALBUM
+function renderAlbum() {
+  const container = document.getElementById('albumContainer');
+  const extData   = EXTENSIONS[currentExtension];
+  const cards     = extData ? extData.cards : [];
+
+  if (cards.length === 0) {
+    document.getElementById('ownedCount').textContent    = 0;
+    document.getElementById('totalCount').textContent    = 0;
+    document.getElementById('completionPct').textContent = 0;
+    document.getElementById('dupCount').textContent      = 0;
+    document.getElementById('progressBar').style.width   = '0%';
+    container.innerHTML = `
+      <div class="ext-empty">
+        <div class="ext-empty-icon">📭</div>
+        <div class="ext-empty-title">${extData.label} — Bientôt disponible</div>
+        <div class="ext-empty-sub">Les cartes de cette extension n'ont pas encore été ajoutées.</div>
+      </div>`;
+    return;
+  }
+
+  const ownedUnique = cards.filter(c => collection[c.id] > 0).length;
+  const totalOwned  = cards.reduce((s,c) => s+(collection[c.id]||0), 0);
+  const dups = totalOwned - ownedUnique;
+  const pct  = Math.round(ownedUnique / cards.length * 100);
+  document.getElementById('ownedCount').textContent    = ownedUnique;
+  document.getElementById('totalCount').textContent    = cards.length;
+  document.getElementById('completionPct').textContent = pct;
+  document.getElementById('dupCount').textContent      = dups;
+  document.getElementById('progressBar').style.width   = pct + '%';
+
+  const rarityLabels = { common:'⭐ Communes', rare:'⭐⭐ Rares', epic:'⭐⭐⭐ Épiques', legendary:'👑 Légendaires' };
+  container.innerHTML = '';
+
+  ['common','rare','epic','legendary'].forEach(rarity => {
+    const rCards = cards.filter(c => c.rarity === rarity);
+    if (!rCards.length) return;
+    const chars = rCards.filter(c => c.type==='character');
+    const objs  = rCards.filter(c => c.type==='object');
+
+    const renderGroup = (groupCards, label) => {
+      if (!groupCards.length) return;
+      const owned = groupCards.filter(c => collection[c.id]>0).length;
+      const dupCards = groupCards.filter(c => (collection[c.id]||0) > 1);
+      const dupTotal = dupCards.reduce((s,c) => s + (collection[c.id]-1), 0);
+      const dupCoins = dupCards.reduce((s,c) => s + (collection[c.id]-1) * SELL_PRICES[c.rarity], 0);
+
+      const section = document.createElement('div');
+
+      // Header with sell-all button
+      const header = document.createElement('div');
+      header.className = 'section-header';
+      header.innerHTML = `<div class="album-section-title">${label} (${owned}/${groupCards.length})</div>`;
+      if (dupTotal > 0) {
+        const sellAllBtn = document.createElement('button');
+        sellAllBtn.className = 'sell-all-btn';
+        sellAllBtn.textContent = `Vendre ${dupTotal} doublon${dupTotal>1?'s':''} → 🪙 ${dupCoins}`;
+        sellAllBtn.onclick = (e) => { e.stopPropagation(); sellAllDuplicates(groupCards); };
+        header.appendChild(sellAllBtn);
+      }
+      section.appendChild(header);
+
+      const grid = document.createElement('div');
+      grid.className = 'album-grid';
+      groupCards.forEach(card => {
+        const count = collection[card.id] || 0;
+        const slot = document.createElement('div');
+        if (count > 0) {
+          slot.className = 'album-slot owned';
+          const dups = count - 1;
+          const price = SELL_PRICES[card.rarity];
+          slot.innerHTML = `
+            <img src="${card.img}" alt="${card.name}" onerror="this.parentElement.classList.add('error')">
+            <div class="card-info">${card.name}</div>
+            ${count>1?`<div class="count-badge">x${count}</div>`:''}
+            ${dups>0?`<button class="sell-btn" onclick="event.stopPropagation();sellDuplicate(${card.id})">Vendre doublon · 🪙${price}</button>`:''}`;
+          if (dups === 0) {
+            slot.onclick = () => openCardModal(card);
+          } else {
+            slot.onclick = () => openCardModal(card);
+          }
+        } else {
+          slot.className = 'album-slot empty';
+          slot.innerHTML = `<div class="slot-question">?</div><div class="slot-hint">${card.name}</div>`;
+        }
+        grid.appendChild(slot);
+      });
+      section.appendChild(grid);
+      container.appendChild(section);
+    };
+
+    if (rarity === 'common') {
+      renderGroup(chars, '⭐ Personnages Communs');
+      renderGroup(objs,  '🔧 Objets');
+    } else {
+      renderGroup(rCards, rarityLabels[rarity]);
+    }
+  });
+}
+
+function openCardModal(card) { document.getElementById('modalImg').src=card.img; document.getElementById('cardModal').classList.add('active'); }
+function closeModal() { document.getElementById('cardModal').classList.remove('active'); }
+
+// ============================================================
+// SELL DUPLICATES
+// ============================================================
+const SELL_PRICES = { common:1, rare:10, epic:50, legendary:100 };
+
+let sellToastTimer = null;
+function showSellToast(msg) {
+  const toast = document.getElementById('sellToast');
+  toast.textContent = msg;
+  toast.classList.add('show');
+  clearTimeout(sellToastTimer);
+  sellToastTimer = setTimeout(() => toast.classList.remove('show'), 2200);
+}
+
+function sellDuplicate(cardId) {
+  const card = CARDS.find(c => c.id === cardId);
+  if (!card || (collection[cardId]||0) <= 1) return;
+  collection[cardId]--;
+  const earned = SELL_PRICES[card.rarity] || 1;
+  mineCoins += earned;
+  saveState();
+  updateMineUI();
+  renderAlbum();
+  showSellToast(`🪙 +${earned} pièce${earned>1?'s':''} — ${card.name} vendu !`);
+}
+
+function sellAllDuplicates(groupCards) {
+  let totalEarned = 0;
+  let totalSold = 0;
+  groupCards.forEach(card => {
+    const dups = (collection[card.id]||0) - 1;
+    if (dups > 0) {
+      collection[card.id] = 1;
+      totalEarned += dups * (SELL_PRICES[card.rarity] || 1);
+      totalSold += dups;
+    }
+  });
+  if (totalSold === 0) return;
+  mineCoins += totalEarned;
+  saveState();
+  updateMineUI();
+  renderAlbum();
+  showSellToast(`🪙 +${totalEarned} pièces — ${totalSold} doublon${totalSold>1?'s':''} vendus !`);
+}
+
+// SAVE / EXPORT / IMPORT / RESET
+function exportSave() {
+  const encoded = btoa(unescape(encodeURIComponent(JSON.stringify({ v:1, collection, lastPackTime, exportedAt:Date.now() }))));
+  const box = document.getElementById('exportBox');
+  box.value = encoded;
+  document.getElementById('copyBtn').style.display = 'inline-block';
+  box.select();
+}
+function copySave() {
+  const box = document.getElementById('exportBox');
+  navigator.clipboard.writeText(box.value).then(() => {
+    const btn = document.getElementById('copyBtn');
+    btn.textContent = '✅ Copié !';
+    setTimeout(() => btn.textContent='📋 Copier le code', 2000);
+  }).catch(() => { box.select(); document.execCommand('copy'); });
+}
+function importSave() {
+  const raw = document.getElementById('importBox').value.trim();
+  const msg = document.getElementById('importMsg');
+  if (!raw) { msg.className='save-msg error'; msg.textContent='⚠️ Colle un code d\'abord.'; return; }
+  try {
+    const decoded = JSON.parse(decodeURIComponent(escape(atob(raw))));
+    if (!decoded.collection) throw new Error();
+    collection=decoded.collection; lastPackTime=decoded.lastPackTime||0;
+    saveState(); updateTimer();
+    msg.className='save-msg success'; msg.textContent='✅ Progression restaurée !';
+    document.getElementById('importBox').value='';
+  } catch(e) { msg.className='save-msg error'; msg.textContent='❌ Code invalide.'; }
+}
+function updateResetUI() {
+  const btn=document.getElementById('resetMainBtn'), msg=document.getElementById('resetCooldownMsg');
+  if (!btn||!msg) return;
+  const remaining = RESET_COOLDOWN - (Date.now()-lastResetTime);
+  if (lastResetTime===0||remaining<=0) { btn.disabled=false; msg.textContent=''; }
+  else {
+    btn.disabled=true;
+    const h=Math.floor(remaining/3600000),m=Math.floor((remaining%3600000)/60000),s=Math.floor((remaining%60000)/1000);
+    msg.textContent=`⏳ Disponible dans ${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  }
+}
+function confirmReset() { if(lastResetTime!==0&&Date.now()-lastResetTime<RESET_COOLDOWN) return; document.getElementById('resetConfirm').style.display='block'; }
+function cancelReset()  { document.getElementById('resetConfirm').style.display='none'; }
+function doReset() {
+  if(lastResetTime!==0&&Date.now()-lastResetTime<RESET_COOLDOWN) return;
+  collection={}; lastPackTime=0; mineClicks=0; mineCoins=0; minePacks=0; lastResetTime=Date.now();
+  saveState(); updateTimer(); updateMineUI(); updateResetUI();
+  document.getElementById('resetConfirm').style.display='none';
+  renderAlbum();
+  const btn=document.getElementById('resetMainBtn');
+  btn.textContent='✅ Réinitialisé !';
+  setTimeout(()=>{ btn.textContent='Réinitialiser'; }, 2000);
+}
+
+// MINING
+const CLICKS_PER_REWARD = 100;
+const SPECIAL_PACK_RATES = {
+  plus: { common:75, rare:15, epic:6,  legendary:4,  cost:100   },
+  xl:   { common:65, rare:20, epic:10, legendary:5,  cost:1000  },
+  xxl:  { common:50, rare:30, epic:10, legendary:10, cost:10000 },
+};
+function updateMineUI() {
+  document.getElementById('mineClicks').textContent    = mineClicks;
+  document.getElementById('mineCoins').textContent     = mineCoins;
+  document.getElementById('minePacks').textContent     = minePacks;
+  const p = mineClicks % CLICKS_PER_REWARD;
+  document.getElementById('mineProgressFill').style.width = p+'%';
+  document.getElementById('mineProgressLabel').textContent = `${p} / 100 clics`;
+  document.getElementById('buyPlus').disabled = mineCoins<SPECIAL_PACK_RATES.plus.cost;
+  document.getElementById('buyXL').disabled   = mineCoins<SPECIAL_PACK_RATES.xl.cost;
+  document.getElementById('buyXXL').disabled  = mineCoins<SPECIAL_PACK_RATES.xxl.cost;
+}
+function doClick(e) {
+  mineClicks++;
+  const span = document.createElement('div');
+  span.className='float-coin'; span.textContent='+1';
+  span.style.left=(e.clientX-12)+'px'; span.style.top=(e.clientY-20)+'px';
+  document.body.appendChild(span); setTimeout(()=>span.remove(),900);
+  if (mineClicks % CLICKS_PER_REWARD === 0) {
+    const roll=Math.random()*100, earned=roll<1?10:roll<5?5:1;
+    mineCoins+=earned; showCoinReward(earned);
+  }
+  updateMineUI(); saveState();
+}
+function showCoinReward(amount) {
+  const icons={1:'🪙',5:'💰',10:'💎'}, titles={1:'+1 PIÈCE !',5:'+5 PIÈCES !',10:'+10 PIÈCES !'}, subs={1:'Continue à miner !',5:'Beau coup !',10:'JACKPOT ! 🎉'};
+  document.getElementById('rewardIcon').textContent=icons[amount];
+  document.getElementById('rewardTitle').textContent=titles[amount];
+  document.getElementById('rewardSub').textContent=subs[amount];
+  document.getElementById('coinRewardPopup').classList.add('show');
+}
+function closeCoinReward() { document.getElementById('coinRewardPopup').classList.remove('show'); }
+function getCardByWeights(rates) {
+  const roll=Math.random()*100;
+  const rarity=roll<rates.common?'common':roll<rates.common+rates.rare?'rare':roll<rates.common+rates.rare+rates.epic?'epic':'legendary';
+  const pool=CARDS.filter(c=>c.rarity===rarity);
+  if(!pool.length) return CARDS[Math.floor(Math.random()*CARDS.length)];
+  return pool[Math.floor(Math.random()*pool.length)];
+}
+function buySpecialPack(type) {
+  const rates=SPECIAL_PACK_RATES[type];
+  if(mineCoins<rates.cost) return;
+  mineCoins-=rates.cost; minePacks++;
+  const card=getCardByWeights(rates);
+  collection[card.id]=(collection[card.id]||0)+1;
+  saveState(); updateMineUI(); showReveal([card]);
+}
+
+// INIT
+async function init() {
+  await loadState();
+  updateTimer();
+  setInterval(()=>{ updateTimer(); updateResetUI(); }, 1000);
+  renderAlbum();
+  updateMineUI();
+  updateResetUI();
+}
+init();
+</script>
+</body>
+</html>
